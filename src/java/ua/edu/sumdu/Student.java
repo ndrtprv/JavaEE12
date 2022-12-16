@@ -11,21 +11,21 @@ package ua.edu.sumdu;
 public class Student {
     private String firstName;
     private String lastName;
-    private String age;
+    private int age;
     private String email;
     private String group;
     private String faculty;
     
     public Student(String firstName, String lastName,
-    String age, String email, String group, String faculty) throws IllegalArgumentException {
+    int age, String email, String group, String faculty) throws IllegalArgumentException {
         if (firstName.isBlank()) {
             throw new IllegalArgumentException("1st name field must be filled!");
         }
         if (lastName.isBlank()) {
             throw new IllegalArgumentException("Last name field must be filled!");
         }
-        if (age.isBlank()) {
-            throw new IllegalArgumentException("Age field must be filled!");
+        if (age < 15 || age > 100) {
+            throw new IllegalArgumentException("Age must be in range [15;100]!");
         }
         if (group.isBlank()) {
             throw new IllegalArgumentException("Group field must be filled!");
@@ -66,13 +66,13 @@ public class Student {
         this.lastName = lastName;
     }
     
-    public String getAge() {
+    public int getAge() {
         return age;
     }
     
-    public void setAge(String age) throws IllegalArgumentException {
-        if (age.isBlank()) {
-            throw new IllegalArgumentException("Age field must be filled!");
+    public void setAge(int age) throws IllegalArgumentException {
+        if (age < 15 || age > 100) {
+            throw new IllegalArgumentException("Age must be in range [15;100]!");
         }
         
         this.age = age;

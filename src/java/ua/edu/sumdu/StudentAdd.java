@@ -4,7 +4,13 @@
  */
 package ua.edu.sumdu;
 
+import com.mysql.jdbc.Connection;
+import com.mysql.jdbc.PreparedStatement;
+import com.mysql.jdbc.Statement;
 import java.io.*;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -17,7 +23,7 @@ import javax.servlet.http.HttpSession;
  *
  * @author Andrii
  */
-@WebServlet(name = "StudentAdd", urlPatterns = {"/StudentAdd"})
+@WebServlet(name = "Default", urlPatterns = "/", loadOnStartup = 1)
 public class StudentAdd extends HttpServlet {
 
     /**
@@ -31,32 +37,69 @@ public class StudentAdd extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, IllegalArgumentException {
-        
-        HttpSession session = request.getSession();
-        List<Student> students = (List<Student>)session.getAttribute("students");
-        
-        if (students == null) {
-            students = new ArrayList<>();
-            session.setAttribute("students", students);
+        PrintWriter pw = null;
+        try {
+            pw = response.getWriter();
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace(pw);
+            pw.print(e.getMessage());
         }
         
-        if (!"".equals(request.getParameter("firstName")) && 
+        Connection conn = null;
+        try {
+            conn = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3311/university", "root", "mpg123");
+            
+            if (!"".equals(request.getParameter("firstName")) && 
                 !"".equals(request.getParameter("lastName")) && 
                 isValidAge(request.getParameter("age")) && 
                 !"".equals(request.getParameter("group")) && 
                 !"".equals(request.getParameter("faculty"))) {
-            Student student = new Student(
-                    request.getParameter("firstName"),
-                    request.getParameter("lastName"),
-                    request.getParameter("age"),
-                    request.getParameter("email"),
-                    request.getParameter("group"),
-                    request.getParameter("faculty")
-            );
-            students.add(student);
+                
+                PreparedStatement ps = (PreparedStatement) conn.prepareStatement("INSERT INTO Student(firstName, lastName, age, email, group_, faculty)VALUES(?, ?, ?, ?, ?, ?)");
+                ps.setString(1,request.getParameter("firstName"));
+                ps.setString(2,request.getParameter("lastName"));
+                ps.setInt(3,Integer.parseInt(request.getParameter("age")));
+                ps.setString(4,request.getParameter("email"));
+                ps.setString(5,request.getParameter("group"));
+                ps.setString(6,request.getParameter("faculty"));
+                // update db so new data could be saved  
+                ps.executeUpdate();
+                // reload the web page 
+                response.sendRedirect("./");
+            }
+            
+            Statement s = (Statement) conn.createStatement();
+            ResultSet resultSet = s.executeQuery("Select * From Student");
+
+            List<Student> students = new LinkedList<>();
+            // get data from db and add it to the list 'students'
+            while(resultSet.next()){
+                Student student = new Student(
+                        resultSet.getString(2),resultSet.getString(3),
+                        resultSet.getInt(4),resultSet.getString(5),
+                        resultSet.getString(6),resultSet.getString(7)
+                );
+                students.add(student);
+            }
+            // set list as an attribute 'students' on jsp 
+            request.setAttribute("students",students);
+            request.getRequestDispatcher("view.jsp").forward(request,response);
+        } catch (SQLException e) {
+            pw.print(e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally{
+            // close connection
+            if (conn != null){
+                try{
+                    conn.close();
+                } catch (SQLException ex) {
+                    ex.getMessage();
+                }
+            }
         }
-        
-        response.sendRedirect("index.jsp");
     }
     
     private boolean isValidAge(String age) {
